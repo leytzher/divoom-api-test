@@ -1,12 +1,6 @@
-from tkinter import W
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-from datetime import datetime
-import numpy as np
-import pandas as pd
-import yfinance as yf
 import requests
 import base64
-from io import BytesIO
 import cv2
 import random
 
