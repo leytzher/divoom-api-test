@@ -1,3 +1,4 @@
+from tkinter import W
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from datetime import datetime
 import numpy as np
@@ -6,57 +7,104 @@ import yfinance as yf
 import requests
 import base64
 from io import BytesIO
+import cv2
+import random
 
+from time import sleep
 url = "http://192.168.100.218:80/post"
-now = datetime.now()
 
-current_time = now.strftime("%H:%M")
-current_date = now.strftime("%d %b:%Y")
-
-data_1m = yf.download(tickers="BTC-USD", period="15m", interval="1m")
-close_prev  = data_1m['Close'][-2]
-close_1m = data_1m['Close'][-1]
-delta_1m = ((close_prev - close_1m)/close_prev)*100
-delta_1m = round(delta_1m, 3)
-print(close_prev, close_1m, delta_1m)
-if delta_1m <0 :
-    fill=(255,0,0)
-else:
-    fill=(0,255,0)
-
-img = Image.new("RGB", (64,64), color=(0,0,0))
-
+# Create background image
 fnt1 = ImageFont.truetype("./fonts/Kenney Blocks.ttf",16)
-fnt2 = ImageFont.truetype("./fonts/Kenney Blocks.ttf",8)
-fnt3 = ImageFont.truetype("./fonts/Kenney Mini.ttf",8)
-
+img = Image.new("RGB", (64,64), color=(0,0,0))
 d = ImageDraw.Draw(img)
-offset=1
-d.text((16,0+offset),"BTC",font=fnt1, fill=fill)
+offset=0
+fill_btc = (255,255,255)
+d.text((16,0+offset),"BTC",font=fnt1, fill=fill_btc)
 
-d.text((4,15+offset),str(int(close_1m)),font=fnt1, fill=fill)
-d.text((20,33+offset),str(delta_1m)+"%",font=fnt2, fill=fill)
-
-d.text((10,41+offset),current_date,font=fnt3, fill=(255,255,255))
-d.text((25,48+offset),current_time,font=fnt3, fill=(255,255,255))
-
-buffered = BytesIO()
-img.save(buffered,format="PNG")
-img_str = base64.b64encode(buffered.getvalue())
-
+# send background image to Divoom
+img.save("btc_ticker.png")
+img = cv2.imread("btc_ticker.png")
+# convert image to RGB bit array and encode to base64
+img_bytes = img.tobytes()
+img_bytes = base64.b64encode(img_bytes)
+# payload for Divoom
 params = {
     "Command":"Draw/SendHttpGif",
     "PicNum":1,
     "PicWidth":64,
     "PicOffset":0,
-    "PicID":2,
+    "PicID":1,
     "PicSpeed":0,
-    "PicData":img_str.decode('utf-8')
+    "PicData":img_bytes.decode("iso-8859-1")
 }
-
+# send post request to Divoom
 res = requests.post(url, json=params)
+
+while True:
+    api = "https://production.api.coindesk.com/v2/tb/price/ticker?assets=all"   
+    news = "https://cryptopanic.com/api/v1/posts/?auth_token=2dd0d59a99511263960349afcbe67a4212b66975&kind=news"
+
+    news_data = requests.get(news).json()
+    news = news_data['results']
+    titles = []
+    for n in news:
+        info = n['title']
+        titles.append(info)
+
+    data  = requests.get(api).json()
+    data = data['data']
+    chg = round(data["BTC"]['change']['percent'],2)
+    price = round(data["BTC"]['ohlc']['c'],0)
+    if chg <0 :
+        fill= "#ff0000"
+    else:
+        fill="#00ff00"
+
+
+    params_price = {"Command":"Draw/SendHttpText",
+                        "TextId":1,
+                        "x":4,
+                        "y":22,
+                        "dir":-1,
+                        "font":1,
+                        "TextWidth":64,
+                        "speed":1.0,
+                        "TextString":f"${str(price)}",
+                        "color":fill
+                        }
+    params_change = {"Command":"Draw/SendHttpText",
+                    "TextId":2,
+                    "x":6,
+                    "y":36,
+                    "dir":-1,
+                    "font":1,
+                    "TextWidth":64,
+                    "speed":1.0,
+                    "TextString":f"{str(chg)}%",
+                    "color":fill
+                    }
+    params_scrolling = {"Command":"Draw/SendHttpText",
+                    "TextId":3,
+                    "x":0,
+                    "y":50,
+                    "dir":-1,
+                    "font":1,
+                    "TextWidth":64,
+                    "speed":1.0,
+                    "TextString":random.choice(titles),
+                    "color":"#ffffff"
+                    }
+    req = requests.post(url, json=params_price)
+    req = requests.post(url, json=params_change)
+    req = requests.post(url, json=params_scrolling)
+    sleep(60*1)
+
+
+
+
+
+
+
 print(params)
-print(res.text)
-img.save("btc_ticker.gif")
-#Debug
+#print(res.text)
 
