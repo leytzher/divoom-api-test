@@ -43,7 +43,7 @@ img = Image.new("RGB", (64,64), color=(0,0,0))
 d = ImageDraw.Draw(img)
 offset=0
 fill_btc = (255,255,255)
-d.text((16,0+offset),"BTC",font=fnt1, fill=fill_btc)
+#d.text((16,0+offset),"BTC",font=fnt1, fill=fill_btc)
 
 # send background image to Divoom
 img.save("btc_ticker.png")
@@ -97,6 +97,12 @@ while True:
     chg = round(data["BTC"]['change']['percent'],2)
     price = round(data["BTC"]['ohlc']['c'],0)
 
+    otherCoins = ""
+    for coin in ["ETH","ADA","XRP","SOL"]:
+        txt = f"- {coin}:{round(data[coin]['ohlc']['c'],1)}$ {round(data[coin]['change']['percent'],2)}%)"
+        otherCoins+=txt
+
+
     if chg <0 :
         fill= "#ff0000"
     else:
@@ -106,7 +112,7 @@ while True:
     params_price = {"Command":"Draw/SendHttpText",
                         "TextId":1,
                         "x":4,
-                        "y":22,
+                        "y":26,
                         "dir":-1,
                         "font":1,
                         "TextWidth":64,
@@ -117,7 +123,7 @@ while True:
     params_change = {"Command":"Draw/SendHttpText",
                     "TextId":2,
                     "x":6,
-                    "y":36,
+                    "y":38,
                     "dir":-1,
                     "font":1,
                     "TextWidth":64,
@@ -127,7 +133,6 @@ while True:
                     }
     req = requests.post(url, json=params_price)
     req = requests.post(url, json=params_change)
-    sleep(60)
     params_scrolling = {"Command":"Draw/SendHttpText",
                     "TextId":3,
                     "x":0,
@@ -139,7 +144,32 @@ while True:
                     "TextString":random.choice(titles),
                     "color":"#ffffff"
                     }
+
+    params_scrolling2 = {"Command":"Draw/SendHttpText",
+                    "TextId":4,
+                    "x":0,
+                    "y":0,
+                    "dir":-1,
+                    "font":1,
+                    "TextWidth":64,
+                    "speed":1.0,
+                    "TextString":random.choice(titles),
+                    "color":"#ffffff"
+                    }
+    params_scrolling3 = {"Command":"Draw/SendHttpText",
+                    "TextId":5,
+                    "x":0,
+                    "y":14,
+                    "dir":0,
+                    "font":1,
+                    "TextWidth":64,
+                    "speed":1.0,
+                    "TextString":otherCoins,
+                    "color":"#ff00ff"
+                    }
     req = requests.post(url, json=params_scrolling)
+    req = requests.post(url, json=params_scrolling2)
+    req = requests.post(url, json=params_scrolling3)
     sleep(60*1)
 
 

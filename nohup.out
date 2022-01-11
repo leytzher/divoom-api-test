@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "btc_ticker.py", line 5, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
+Traceback (most recent call last):
+  File "btc_ticker.py", line 5, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
+Traceback (most recent call last):
+  File "btc_ticker.py", line 2, in <module>
+    import requests
+ModuleNotFoundError: No module named 'requests'
+Traceback (most recent call last):
+  File "btc_ticker.py", line 4, in <module>
+    import cv2
+ModuleNotFoundError: No module named 'cv2'
