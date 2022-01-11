@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import requests
 import base64
