@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from PIL import Image, ImageDraw, ImageFont, ImageOps
 import requests
 import base64
 import cv2
@@ -11,45 +10,31 @@ import random
 from bs4 import BeautifulSoup as bs
 
 
-
 url = "http://192.168.100.218:80/post"
 
-def image_params(text):
-    fnt1 = ImageFont.truetype("./fonts/Kenney Blocks.ttf",16)
-    img = Image.new("RGB", (64,64), color=(0,0,0))
-    d = ImageDraw.Draw(img)
-    offset=0
-    fill_btc = (255,255,255)
-    d.text((16,0+offset),text,font=fnt1, fill=fill_btc)
-
-    img.save(f"{text}_ticker.png")
-    img = cv2.imread(f"{text}_ticker.png")
-    img_bytes = img.tobytes()
-    img_bytes = base64.b64encode(img_bytes)
-
-    params = {
-        "Command":"Draw/SendHttpGif",
-        "PicNum":1,
-        "PicWidth":64,
-        "PicOffset":0,
-        "PicID":1,
-        "PicSpeed":0,
-        "PicData":img_bytes.decode("iso-8859-1")
-    }
-    return params
-
-ada = image_params("ada")
-btc = image_params("btc")
+colors = ["#fff7d1","#fffceb","#fff3b7","#ffee9d","#ffea83","#ffe568","#ffe14e","#ffdc34"]
 
 tick = True
 
 while True:
-
     try:
         if tick == True:
-            params = btc
+            img = cv2.imread("btc_ticker.png")
         else:
-            params = ada
+            img = cv2.imread("ada_ticker.png")
+
+        img_bytes = img.tobytes()
+        img_bytes = base64.b64encode(img_bytes)
+
+        params = {
+            "Command":"Draw/SendHttpGif",
+            "PicNum":1,
+            "PicWidth":64,
+            "PicOffset":0,
+            "PicID":1,
+            "PicSpeed":0,
+            "PicData":img_bytes.decode("iso-8859-1")
+        }
 
         res = requests.post(url, json=params)
         api = "https://production.api.coindesk.com/v2/tb/price/ticker?assets=all"
@@ -67,10 +52,12 @@ while True:
         data = data['data']
         if tick:
             coin = "BTC"
+            price = round(data[coin]['ohlc']['c'],0)
         else:
             coin = "ADA"
+            price = round(data[coin]['ohlc']['c'],3)
+
         chg = round(data[coin]['change']['percent'],2)
-        price = round(data[coin]['ohlc']['c'],0)
 
         if chg <0 :
             fill= "#ff0000"
@@ -102,6 +89,7 @@ while True:
                     }
         req = requests.post(url, json=params_price)
         req = requests.post(url, json=params_change)
+
         params_scrolling = {"Command":"Draw/SendHttpText",
                     "TextId":3,
                     "x":0,
@@ -111,7 +99,7 @@ while True:
                     "TextWidth":64,
                     "speed":1.0,
                     "TextString":random.choice(titles),
-                    "color":"#ffffff"
+                    "color": random.choice(colors)
                     }
         req = requests.post(url, json=params_scrolling)
         print(f"Last updated on {datetime.now()}, BTC price {price} USD")
