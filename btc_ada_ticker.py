@@ -10,64 +10,47 @@ import requests
 import random
 from bs4 import BeautifulSoup as bs
 
-def get_free_proxies():
-    url = "https://free-proxy-list.net/"
-    # get the HTTP response and construct soup object
-    soup = bs(requests.get(url).content, "html.parser")
-    proxies = []
-    for row in soup.find("table", attrs={"id": "proxylisttable"}).find_all("tr")[1:]:
-        tds = row.find_all("td")
-        try:
-            ip = tds[0].text.strip()
-            port = tds[1].text.strip()
-            host = f"{ip}:{port}"
-            proxies.append(host)
-        except IndexError:
-            continue
-    return proxies
 
-def get_session(proxies):
-    # construct an HTTP session
-    session = requests.Session()
-    # choose one random proxy
-    proxy = random.choice(proxies)
-    session.proxies = {"http": proxy, "https": proxy}
-    return session
 
 url = "http://192.168.100.218:80/post"
 
+def image_params(text):
+    fnt1 = ImageFont.truetype("./fonts/Kenney Blocks.ttf",16)
+    img = Image.new("RGB", (64,64), color=(0,0,0))
+    d = ImageDraw.Draw(img)
+    offset=0
+    fill_btc = (255,255,255)
+    d.text((16,0+offset),text,font=fnt1, fill=fill_btc)
 
+    img.save(f"{text}_ticker.png")
+    img = cv2.imread(f"{text}_ticker.png")
+    img_bytes = img.tobytes()
+    img_bytes = base64.b64encode(img_bytes)
 
+    params = {
+        "Command":"Draw/SendHttpGif",
+        "PicNum":1,
+        "PicWidth":64,
+        "PicOffset":0,
+        "PicID":1,
+        "PicSpeed":0,
+        "PicData":img_bytes.decode("iso-8859-1")
+    }
+    return params
 
-# Create background image
-fnt1 = ImageFont.truetype("./fonts/Kenney Blocks.ttf",16)
-img = Image.new("RGB", (64,64), color=(0,0,0))
-d = ImageDraw.Draw(img)
-offset=0
-fill_btc = (255,255,255)
-d.text((16,0+offset),"BTC",font=fnt1, fill=fill_btc)
+ada = image_params("ada")
+btc = image_params("btc")
 
-# send background image to Divoom
-img.save("btc_ticker.png")
-img = cv2.imread("btc_ticker.png")
-# convert image to RGB bit array and encode to base64
-img_bytes = img.tobytes()
-img_bytes = base64.b64encode(img_bytes)
-# payload for Divoom
-params = {
-    "Command":"Draw/SendHttpGif",
-    "PicNum":1,
-    "PicWidth":64,
-    "PicOffset":0,
-    "PicID":1,
-    "PicSpeed":0,
-    "PicData":img_bytes.decode("iso-8859-1")
-}
-# send post request to Divoom
-#res = requests.post(url, json=params)
+tick = True
 
 while True:
+
     try:
+        if tick == True:
+            params = btc
+        else:
+            params = ada
+
         res = requests.post(url, json=params)
         api = "https://production.api.coindesk.com/v2/tb/price/ticker?assets=all"
         news = "https://cryptopanic.com/api/v1/posts/?auth_token=2dd0d59a99511263960349afcbe67a4212b66975&kind=news"
@@ -82,8 +65,12 @@ while True:
 
         data  = requests.get(api).json()
         data = data['data']
-        chg = round(data["BTC"]['change']['percent'],2)
-        price = round(data["BTC"]['ohlc']['c'],0)
+        if tick:
+            coin = "BTC"
+        else:
+            coin = "ADA"
+        chg = round(data[coin]['change']['percent'],2)
+        price = round(data[coin]['ohlc']['c'],0)
 
         if chg <0 :
             fill= "#ff0000"
@@ -129,6 +116,7 @@ while True:
         req = requests.post(url, json=params_scrolling)
         print(f"Last updated on {datetime.now()}, BTC price {price} USD")
 
+        tick = not(tick)
         sleep(60*1)
     except:
         print("Could not connect to API")
